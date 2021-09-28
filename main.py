@@ -45,6 +45,10 @@ def acm(data):
     fi_fj = (XTDC_fi.reshape(-1,1).dot(XTDC_fj.reshape(1,len(XTDC_fj))))
     fi_fj[fi_fj == 0] = -1
     XTDC = XTDC/fi_fj - 1
+    moy = XTDC.mean(0)
+    var = XTDC.std(0)
+    var[var==0] = -1
+    XTDC = (XTDC - moy) / var
 
     return acp(XTDC)
 
@@ -56,7 +60,7 @@ def CAH(fac_ind, me = 'ward', t = 8.1):
 
     return fcluster(Z, t, criterion='distance')
 
-def centre_mobile(fac_ind, k = 2, me = 'points'):
+def centre_mobile(fac_ind, k = 3, me = 'points'):
     centroid, label = kmeans2(fac_ind, k, minit = me)
     return centroid, label
 
@@ -112,6 +116,7 @@ def _get_colors(num_colors):
 
 def ACM_CAH(pp, t = 8, me = 'ward'):
     fac_ind = acm(pp.data)
+    print(fac_ind)
     fc = CAH(fac_ind, t=t, me=me)
     dessin_CAH(fac_ind, fc)
 
@@ -139,8 +144,7 @@ def ACP_CM(pp, k=3):
 
 if __name__ == '__main__':
     pp = Population()
-    pp.data.astype('int64')
-    ACM_CAH(pp)
+    ACM_CM(pp)
 
 
 
