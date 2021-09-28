@@ -11,10 +11,7 @@ def readfile(filename):
 
 class Population:
     def __init__(self):
-        data = np.loadtxt('population_donnees.txt')
-        moy = data.mean(0)
-        var = data.std(0)
-        self.data = (data - moy) / var
+        self.data = np.loadtxt('population_donnees.txt')
         self.nom_individus = readfile('population_noms_individus.txt')
         self.nom_variables = readfile('population_noms_variables.txt')
 
@@ -45,7 +42,9 @@ def acm(data):
     XTDC = XTDC/XTDC.sum()
     XTDC_fi = XTDC.sum(1)
     XTDC_fj = XTDC.sum(0)
-    XTDC = XTDC/(XTDC_fi.reshape(-1,1).dot(XTDC_fj.reshape(1,len(XTDC_fj)))) - 1
+    fi_fj = (XTDC_fi.reshape(-1,1).dot(XTDC_fj.reshape(1,len(XTDC_fj))))
+    fi_fj[fi_fj == 0] = -1
+    XTDC = XTDC/fi_fj - 1
 
     return acp(XTDC)
 
@@ -101,44 +100,6 @@ def dessin_centre_mobile(fac_ind, centroid, label):
 
 
 
-    '''
-    x = np.arange(-1, 1, 0.01)
-    cercle_unite = np.zeros((2, len(x)))
-    cercle_unite[0, :] = np.sqrt(1 - x ** 2)
-    cercle_unite[1, :] = -cercle_unite[0, :]
-    plt.plot(x, cercle_unite[0])
-    plt.plot(x, cercle_unite[1])
-    plt.plot(fac_var[:, 0], fac_var[:, 1], 'x')
-    plt.yscale('linear')
-    plt.grid(True)
-
-    for label, x, y in zip(nom_variables, fac_var[:, 0], fac_var[:, 1]):
-        plt.annotate(label, xy=(x, y), xytext=(-50, 5), textcoords='offset points',
-                     arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad = 0'))
-    plt.show()
-    '''
-
-'''
-    inertie = fac_ind.T.dot(D.dot(fac_ind))
-    total = np.trace(inertie)
-    pourcentage = list(range(inertie.shape[0]))
-    for i in range(len(pourcentage)):
-        pourcentage[i] = inertie[i,i]/total
-
-
-
-    ##laoshi
-    contribution_ind = np.zeros(fac_ind.shape)
-    for i in range(fac_ind.shape[1]):
-        f = fac_ind[:,i]
-        contribution_ind[:, i] = 100 * D.dot(f*f)/f.T.dot(D.dot(f))
-
-
-    distance = (fac_ind**2).sum(1)
-    distance =distance.reshape(fac_ind.shape[0],1)
-    qualite_ind = fac_ind**2/distance
-
-'''
 
 def _get_colors(num_colors):
     colors=[]
@@ -160,11 +121,17 @@ def ACM_CM(pp, k=3):
     dessin_centre_mobile(fac_ind, centroid, label)
 
 def ACP_CAH(pp,t = 8, me = 'ward'):
+    moy = pp.data.mean(0)
+    var = pp.data.std(0)
+    pp.data = (pp.data - moy) / var
     fac_ind = acp(pp.data)
     fc = CAH(fac_ind, t=t, me=me)
     dessin_CAH(fac_ind, fc)
 
 def ACP_CM(pp, k=3):
+    moy = pp.data.mean(0)
+    var = pp.data.std(0)
+    pp.data = (pp.data - moy) / var
     fac_ind = acp(pp.data)
     centroid, label = centre_mobile(fac_ind, k=k)
     dessin_centre_mobile(fac_ind, centroid, label)
@@ -172,7 +139,8 @@ def ACP_CM(pp, k=3):
 
 if __name__ == '__main__':
     pp = Population()
-    ACM_CM(pp, k=5)
+    pp.data.astype('int64')
+    ACM_CAH(pp)
 
 
 
