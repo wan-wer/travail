@@ -11,11 +11,14 @@ def readfile(filename):
 
 class Population:
     def __init__(self):
-        self.data = np.loadtxt('population_donnees.txt')
+        data = np.loadtxt('population_donnees.txt')
+        moy = data.mean(0)
+        var = data.std(0)
+        self.data = (data - moy) / var
         self.nom_individus = readfile('population_noms_individus.txt')
         self.nom_variables = readfile('population_noms_variables.txt')
 
-def acp(X, nom_individus, nom_variables):
+def acp(X):
     I = X.shape[0]
     K = X.shape[1]
     D = np.eye(I)/I
@@ -31,12 +34,30 @@ def acp(X, nom_individus, nom_variables):
     fac_ind =X.dot(M.dot(vect_p_ind))
     return fac_ind
 
-def CAH(fac_ind, me = 'ward', t = 400):
+def acm(data):
+    nb_modalites_par_var = data.max(0)
+    nb_modalites = int(nb_modalites_par_var.sum())
+
+    XTDC = np.zeros((data.shape[0], nb_modalites))
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            XTDC[i, int(nb_modalites_par_var[:j].sum() + data[i, j] - 1)] = 1
+    XTDC = XTDC/XTDC.sum()
+    XTDC_fi = XTDC.sum(1)
+    XTDC_fj = XTDC.sum(0)
+    XTDC = XTDC/(XTDC_fi.reshape(-1,1).dot(XTDC_fj.reshape(1,len(XTDC_fj)))) - 1
+
+    return acp(XTDC)
+
+
+def CAH(fac_ind, me = 'ward', t = 8.1):
     Z = linkage(fac_ind, method=me)
+    plt.figure()
+    dendrogram(Z)
 
     return fcluster(Z, t, criterion='distance')
 
-def centre_mobile(fac_ind, k = 3, me = 'points'):
+def centre_mobile(fac_ind, k = 2, me = 'points'):
     centroid, label = kmeans2(fac_ind, k, minit = me)
     return centroid, label
 
@@ -52,7 +73,7 @@ def dessin_CAH(fac_ind, fc):
     for i in range(1, (fc_max + 1)):
         centre[i] = np.mean(cate[i],axis=0)
     colors = _get_colors(fc_max)
-
+    plt.figure()
     for i in range(1, (fc_max + 1)):
         plt.scatter(centre[i][0],centre[i][1], marker = 'X', s = 200, color = colors[i-1])
         x = np.array(cate[i])[:,0]
@@ -70,7 +91,6 @@ def dessin_centre_mobile(fac_ind, centroid, label):
     cate = defaultdict(list)
     for count, value in enumerate(fc):
         cate[value].append(fac_ind[count])
-
     for i in range(1, (fc_max + 1)):
         plt.scatter(centroid[i-1,0], centroid[i-1, 1], marker='X', s=200, color=colors[i - 1])
         x = np.array(cate[i])[:, 0]
@@ -129,13 +149,40 @@ def _get_colors(num_colors):
         colors.append(colorsys.hls_to_rgb(hue, lightness, saturation))
     return colors
 
+def ACM_CAH(pp, t = 8, me = 'ward'):
+    fac_ind = acm(pp.data)
+    fc = CAH(fac_ind, t=t, me=me)
+    dessin_CAH(fac_ind, fc)
+
+def ACM_CM(pp, k=3):
+    fac_ind = acm(pp.data)
+    centroid, label = centre_mobile(fac_ind, k=k)
+    dessin_centre_mobile(fac_ind, centroid, label)
+
+def ACP_CAH(pp,t = 8, me = 'ward'):
+    fac_ind = acp(pp.data)
+    fc = CAH(fac_ind, t=t, me=me)
+    dessin_CAH(fac_ind, fc)
+
+def ACP_CM(pp, k=3):
+    fac_ind = acp(pp.data)
+    centroid, label = centre_mobile(fac_ind, k=k)
+    dessin_centre_mobile(fac_ind, centroid, label)
+
+
 if __name__ == '__main__':
     pp = Population()
-    fac_ind = acp(pp.data, pp.nom_individus, pp.nom_variables)
-    fc = CAH(fac_ind)
-    #dessin_CAH(fac_ind, fc)
-    centroid, label = centre_mobile(fac_ind)
-    dessin_centre_mobile(fac_ind, centroid, label)
+    ACM_CM(pp, k=5)
+
+
+
+
+
+
+
+
+
+
 
 
 
