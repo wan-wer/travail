@@ -66,7 +66,7 @@ def centre_mobile(fac_ind, k = 3, me = 'points'):
 
 
 
-def dessin_CAH(fac_ind, fc):
+def dessin_CAH(fac_ind, fc, nom_individus):
     fc_max = max(fc)
     fac_ind = fac_ind[:,:2]
     cate = defaultdict(list)
@@ -83,9 +83,11 @@ def dessin_CAH(fac_ind, fc):
         y = np.array(cate[i])[:,1]
 
         plt.scatter(x, y, marker = 'o', s = 20, color = colors[i-1])
+    for label,x,y in zip(nom_individus, fac_ind[:,0], fac_ind[:,1]):
+        plt.annotate(label, xy = (x,y), xytext = (-50, 5),textcoords = 'offset points', arrowprops = dict(arrowstyle='->',connectionstyle = 'arc3,rad = 0'))
     plt.show()
 
-def dessin_centre_mobile(fac_ind, centroid, label):
+def dessin_centre_mobile(fac_ind, centroid, label, nom_individus):
     fc = np.array(label) + 1
     fc_max = max(fc)
 
@@ -100,6 +102,8 @@ def dessin_centre_mobile(fac_ind, centroid, label):
         y = np.array(cate[i])[:, 1]
 
         plt.scatter(x, y, marker='o', s=20, color=colors[i - 1])
+    for label,x,y in zip(nom_individus, fac_ind[:,0], fac_ind[:,1]):
+        plt.annotate(label, xy = (x,y), xytext = (-50, 5),textcoords = 'offset points', arrowprops = dict(arrowstyle='->',connectionstyle = 'arc3,rad = 0'))
     plt.show()
 
 
@@ -116,14 +120,15 @@ def _get_colors(num_colors):
 
 def ACM_CAH(pp, t = 8, me = 'ward'):
     fac_ind = acm(pp.data)
-    print(fac_ind)
+    fac_ind = np.real(fac_ind)
     fc = CAH(fac_ind, t=t, me=me)
-    dessin_CAH(fac_ind, fc)
+    dessin_CAH(fac_ind, fc, nom_individus=pp.nom_individus)
 
 def ACM_CM(pp, k=3):
     fac_ind = acm(pp.data)
+    fac_ind = np.real(fac_ind)
     centroid, label = centre_mobile(fac_ind, k=k)
-    dessin_centre_mobile(fac_ind, centroid, label)
+    dessin_centre_mobile(fac_ind, centroid, label, nom_individus=pp.nom_individus)
 
 def ACP_CAH(pp,t = 8, me = 'ward'):
     moy = pp.data.mean(0)
@@ -138,13 +143,15 @@ def ACP_CM(pp, k=3):
     var = pp.data.std(0)
     pp.data = (pp.data - moy) / var
     fac_ind = acp(pp.data)
+    print(fac_ind)
     centroid, label = centre_mobile(fac_ind, k=k)
     dessin_centre_mobile(fac_ind, centroid, label)
 
 
 if __name__ == '__main__':
     pp = Population()
-    ACM_CM(pp)
+    ACM_CM(pp, k=2)
+
 
 
 
