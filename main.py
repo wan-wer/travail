@@ -39,18 +39,49 @@ def acm(data):
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
             XTDC[i, int(nb_modalites_par_var[:j].sum() + data[i, j] - 1)] = 1
-    XTDC = XTDC/XTDC.sum()
-    XTDC_fi = XTDC.sum(1)
-    XTDC_fj = XTDC.sum(0)
-    fi_fj = (XTDC_fi.reshape(-1,1).dot(XTDC_fj.reshape(1,len(XTDC_fj))))
-    fi_fj[fi_fj == 0] = -1
-    XTDC = XTDC/fi_fj - 1
-    moy = XTDC.mean(0)
-    var = XTDC.std(0)
-    var[var==0] = -1
-    XTDC = (XTDC - moy) / var
+    Xfreq = XTDC / XTDC.sum()
+    marge_colonne = Xfreq.sum(1).reshape(Xfreq.shape[0], 1)
+    # print(marge_colonne.shape)
+    marge_ligne = Xfreq.sum(0).reshape(1, Xfreq.shape[1])
+    # print(marge_ligne.shape)
 
-    return acp(XTDC)
+    Xindep = marge_ligne * marge_colonne
+    Xindep[Xindep==0] = -1
+    # print(Xindep.shape)
+
+
+    X = Xfreq / Xindep - 1
+
+    M = np.diag(marge_ligne[0, :])
+    D = np.diag(marge_colonne[:, 0])
+    # print(M.shape)
+    # print(D.shape)
+
+    # Calcul de la matrice de covariance pour les modalités en ligne
+    Xcov_ind = X.T.dot(D.dot(X.dot(M)))
+
+    # Calcul des valeurs et vecteurs propres de la matrice de covariance
+    L, U = np.linalg.eig(Xcov_ind)
+
+    # Tri par ordre décroissant des valeurs des valeurs propres
+    indices = np.argsort(L)[::-1]
+    val_p_ind = np.float16(np.sort(L)[
+                           ::-1])  # car des valeurs peuvent être complexes avec une partie imaginaire nulle en raison d'approximations numériques
+    vect_p_ind = U[:, indices]
+
+    # Suppression des éventuelles valeurs propres nulles
+    indices = np.nonzero(val_p_ind > 0)[0]
+    val_p_ind = val_p_ind[indices]
+    vect_p_ind = vect_p_ind[:, indices]
+
+    # Calcul des facteurs pour les modalités en ligne
+    fact_ind = X.dot(M.dot(vect_p_ind))
+
+    # Calcul des facteurs pour les modalités en colonne
+    fact_mod = X.T.dot(D.dot(fact_ind)) / np.sqrt(val_p_ind)
+
+
+    return fact_ind
 
 
 def CAH(fac_ind, me = 'ward', t = 8.1):
@@ -118,7 +149,7 @@ def _get_colors(num_colors):
         colors.append(colorsys.hls_to_rgb(hue, lightness, saturation))
     return colors
 
-def ACM_CAH(pp, t = 8, me = 'ward'):
+def ACM_CAH(pp, t = 0.452, me = 'ward'):
     fac_ind = acm(pp.data)
     fac_ind = np.real(fac_ind)
     fc = CAH(fac_ind, t=t, me=me)
@@ -136,21 +167,20 @@ def ACP_CAH(pp,t = 8, me = 'ward'):
     pp.data = (pp.data - moy) / var
     fac_ind = acp(pp.data)
     fc = CAH(fac_ind, t=t, me=me)
-    dessin_CAH(fac_ind, fc)
+    dessin_CAH(fac_ind, fc, nom_individus=pp.nom_individus)
 
 def ACP_CM(pp, k=3):
     moy = pp.data.mean(0)
     var = pp.data.std(0)
     pp.data = (pp.data - moy) / var
     fac_ind = acp(pp.data)
-    print(fac_ind)
     centroid, label = centre_mobile(fac_ind, k=k)
-    dessin_centre_mobile(fac_ind, centroid, label)
+    dessin_centre_mobile(fac_ind, centroid, label, nom_individus=pp.nom_individus)
 
 
 if __name__ == '__main__':
     pp = Population()
-    ACM_CM(pp, k=2)
+    ACP_CM(pp)
 
 
 
